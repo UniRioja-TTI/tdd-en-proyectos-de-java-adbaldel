@@ -2,6 +2,11 @@ package com.tt1.test;
 
 public class Servicio
 {
+	public Servicio(IRepositorio repositorio, IMailer mailer)
+	{
+		throw new UnsupportedOperationException("Clase aún no implementada.");
+	}
+
 	public void addToDo()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
@@ -22,12 +27,12 @@ public class Servicio
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public void checkUnfinishedToDosDeadline()
+	public void getExpiredToDos()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public void broadcastUnfinishedToDosExpired()
+	public void broadcastExpiredToDos()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}

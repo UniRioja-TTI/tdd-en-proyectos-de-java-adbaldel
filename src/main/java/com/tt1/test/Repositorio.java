@@ -1,23 +1,52 @@
 package com.tt1.test;
 
-public class Repositorio
+import java.util.Collection;
+
+public class Repositorio implements IRepositorio
 {
-	public static ToDo getToDo(ToDo todo)
+	public Repositorio(IDB dataBase)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static void completarToDo(ToDo todo)
+	@Override
+	public IToDo getToDo(IToDo todo)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static void addToDo(ToDo todo)
+	@Override
+	public Collection<IToDo> getAllToDos()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static void addEmail(String email)
+	@Override
+	public Collection<IToDo> getUnfinishedToDos()
+	{
+		throw new UnsupportedOperationException("Clase aún no implementada.");
+	}
+
+	@Override
+	public Collection<IToDo> getExpiredToDos()
+	{
+		throw new UnsupportedOperationException("Clase aún no implementada.");
+	}
+
+	@Override
+	public void completarToDo(IToDo todo)
+	{
+		throw new UnsupportedOperationException("Clase aún no implementada.");
+	}
+
+	@Override
+	public void addToDo(IToDo todo)
+	{
+		throw new UnsupportedOperationException("Clase aún no implementada.");
+	}
+
+	@Override
+	public void addEmail(String email)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}

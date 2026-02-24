@@ -1,43 +1,66 @@
 package com.tt1.test;
 
-public class DBStub
+import java.util.Collection;
+import java.util.List;
+
+public class DBStub implements IDB
 {
-	public static void insertToDo(ToDo todo)
+	@Override
+	public void insertToDo(IToDo todo)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static ToDo getToDo(ToDo todo)
+	@Override
+	public IToDo getToDo(IToDo todo)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static void updateToDo(ToDo original, ToDo nuevo)
+	@Override
+	public Collection<IToDo> getAllToDos()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static void deleteToDo(ToDo todo)
+	@Override
+	public void updateToDo(IToDo todo)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static void insertEmail(String email)
+	@Override
+	public void deleteToDo(IToDo todo)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static String getEmail(String email)
+	@Override
+	public void insertEmail(String email)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static void updateEmail(String original, String nuevo)
+	@Override
+	public String getEmail(String email)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public static void deleteEmail(String original)
+	@Override
+	public Collection<String> getAllEmails()
+	{
+		throw new UnsupportedOperationException("Clase aún no implementada.");
+	}
+
+	@Override
+	public void updateEmail(String email)
+	{
+		throw new UnsupportedOperationException("Clase aún no implementada.");
+	}
+
+	@Override
+	public void deleteEmail(String original)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}

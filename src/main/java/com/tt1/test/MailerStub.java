@@ -1,8 +1,9 @@
 package com.tt1.test;
 
-public class MailerStub
+public class MailerStub implements IMailer
 {
-	public static boolean sendEmail(String address, String message)
+	@Override
+	public boolean sendEmail(String address, String message)
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
