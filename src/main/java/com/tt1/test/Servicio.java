@@ -1,45 +1,33 @@
 package com.tt1.test;
 
-import java.util.Date;
-
-public class ToDo
+public class Servicio
 {
-	public String getNombre()
+	public void addToDo()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public void setNombre(String nombre)
+	public void addEmail()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public String getDescripcion()
+	public void completarToDo()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public void setDescripcion(String descripcion)
+	public void getUnfinishedToDos()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public Date getFechaLimite()
+	public void checkUnfinishedToDosDeadline()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
 
-	public void setFechaLimite(Date fechaLimite)
-	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
-	}
-
-	public boolean isCompletado()
-	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
-	}
-
-	public void setCompletado(boolean completado)
+	public void broadcastUnfinishedToDosExpired()
 	{
 		throw new UnsupportedOperationException("Clase aún no implementada.");
 	}
