@@ -98,6 +98,25 @@ public class RepositorioTest
 			assertTrue(resultado.contains(todo3));
 			assertEquals(1, resultado.size());
 		}
+
+		// --- getAllEmails -----------------------------------------------
+
+		@Test
+		public void testGetAllEmailsDevuelveLosEmailsDeBaseDeDatos()
+		{
+			Collection<String> resultado = repositorio.getAllEmails();
+
+			assertNotNull(resultado);
+			assertFalse(resultado.isEmpty());
+		}
+
+		@Test
+		public void testGetAllEmailsDevuelveElEmailCorrecto()
+		{
+			Collection<String> resultado = repositorio.getAllEmails();
+
+			assertTrue(resultado.contains("john.doe@example.com"));
+		}
 	}
 
 	// --- TEST DE INTEGRACIÓN (con clases reales) -----------------------------------------------
@@ -395,6 +414,59 @@ public class RepositorioTest
 			assertEquals(2, db.getAllEmails().size());
 			assertTrue(db.getAllEmails().contains("a@a.com"));
 			assertTrue(db.getAllEmails().contains("b@b.com"));
+		}
+
+		// --- getAllEmails -----------------------------------------------
+
+		@Test
+		public void testGetAllEmailsEstaVacioAlIniciar()
+		{
+			assertTrue(repositorio.getAllEmails().isEmpty());
+		}
+
+		@Test
+		public void testGetAllEmailsDevuelveElEmailAlmacenado()
+		{
+			repositorio.addEmail("john.doe@ejemplo.com");
+
+			Collection<String> resultado = repositorio.getAllEmails();
+
+			assertTrue(resultado.contains("john.doe@ejemplo.com"));
+			assertEquals(1, resultado.size());
+		}
+
+		@Test
+		public void testGetAllEmailsDevuelveTodosLosEmailsAlmacenados()
+		{
+			repositorio.addEmail("a@a.com");
+			repositorio.addEmail("b@b.com");
+			repositorio.addEmail("c@c.com");
+
+			Collection<String> resultado = repositorio.getAllEmails();
+
+			assertTrue(resultado.contains("a@a.com"));
+			assertTrue(resultado.contains("b@b.com"));
+			assertTrue(resultado.contains("c@c.com"));
+			assertEquals(3, resultado.size());
+		}
+
+		@Test
+		public void testGetAllEmailsNoDevuelveEmailsNoInsertados()
+		{
+			repositorio.addEmail("a@a.com");
+
+			Collection<String> resultado = repositorio.getAllEmails();
+
+			assertFalse(resultado.contains("b@b.com"));
+		}
+
+		@Test
+		public void testGetAllEmailsNoAlmacenaEmailsDuplicados()
+		{
+			repositorio.addEmail("a@a.com");
+			repositorio.addEmail("a@a.com");
+
+			assertEquals(1, repositorio.getAllEmails().size());
 		}
 	}
 }

@@ -6,62 +6,70 @@ import java.util.Date;
 
 public class ToDo implements IToDo
 {
+	private String nombre;
+	private String descripcion;
+	private Date fechaLimite;
+	private boolean completado;
+
 	public ToDo()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		this.completado = false;
 	}
 
 	public ToDo(String nombre, String descripcion, Date fechaLimite)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		this.nombre = nombre;
+		this.descripcion = descripcion;
+		this.fechaLimite = fechaLimite;
+		this.completado = false;
 	}
 
 	@Override
 	public String getNombre()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return nombre;
 	}
 
 	@Override
 	public void setNombre(String nombre)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		this.nombre = nombre;
 	}
 
 	@Override
 	public String getDescripcion()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return descripcion;
 	}
 
 	@Override
 	public void setDescripcion(String descripcion)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		this.descripcion = descripcion;
 	}
 
 	@Override
 	public Date getFechaLimite()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return fechaLimite;
 	}
 
 	@Override
 	public void setFechaLimite(Date fechaLimite)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		this.fechaLimite = fechaLimite;
 	}
 
 	@Override
 	public boolean isCompletado()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return completado;
 	}
 
 	@Override
 	public void setCompletado(boolean completado)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		this.completado = completado;
 	}
 
 	@Override
@@ -85,5 +93,11 @@ public class ToDo implements IToDo
 		ToDo other = (ToDo) obj;
 
 		return other.getNombre().equals(this.getNombre());
+	}
+
+	@Override
+	public int hashCode()
+	{
+		return nombre == null ? 0 : nombre.hashCode();
 	}
 }

@@ -1,53 +1,74 @@
 package com.tt1.test;
 
 import java.util.Collection;
+import java.util.Date;
+import java.util.stream.Collectors;
 
 public class Repositorio implements IRepositorio
 {
+	private final IDB dataBase;
+
 	public Repositorio(IDB dataBase)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		this.dataBase = dataBase;
 	}
 
 	@Override
 	public IToDo getToDo(IToDo todo)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return dataBase.getToDo(todo);
 	}
 
 	@Override
 	public Collection<IToDo> getAllToDos()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return dataBase.getAllToDos();
 	}
 
 	@Override
 	public Collection<IToDo> getUnfinishedToDos()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return dataBase.getAllToDos().stream()
+			.filter(t -> !t.isCompletado())
+			.collect(Collectors.toList());
 	}
 
 	@Override
 	public Collection<IToDo> getExpiredToDos()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		Date ahora = new Date();
+		return dataBase.getAllToDos().stream()
+			.filter(t -> !t.isCompletado())
+			.filter(t -> t.getFechaLimite() != null && t.getFechaLimite().before(ahora))
+			.collect(Collectors.toList());
 	}
 
 	@Override
 	public void completarToDo(IToDo todo)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		IToDo todoCompleto = dataBase.getToDo(todo);
+		if (todoCompleto != null)
+		{
+			todoCompleto.setCompletado(true);
+			dataBase.updateToDo(todoCompleto);
+		}
 	}
 
 	@Override
 	public void addToDo(IToDo todo)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		dataBase.insertToDo(todo);
 	}
 
 	@Override
 	public void addEmail(String email)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		dataBase.insertEmail(email);
+	}
+
+	@Override
+	public Collection<String> getAllEmails()
+	{
+		return dataBase.getAllEmails();
 	}
 }

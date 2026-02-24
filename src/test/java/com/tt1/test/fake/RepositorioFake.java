@@ -69,4 +69,12 @@ public class RepositorioFake implements IRepositorio
 	public void addEmail(String email)
 	{
 	}
+
+	@Override
+	public Collection<String> getAllEmails()
+	{
+		Collection<String> emails = new ArrayList<>();
+		emails.add("john.doe@example.com");
+		return emails;
+	}
 }

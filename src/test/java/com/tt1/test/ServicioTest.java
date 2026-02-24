@@ -137,6 +137,25 @@ public class ServicioTest
 
 			assertDoesNotThrow(() -> servicio.completarToDo());
 		}
+
+		// --- getAllEmails (a través del repositorio) -----------------------------------------------
+
+		@Test
+		public void testBroadcastUsaLosEmailsDelRepositorio()
+		{
+			// RepositorioFake devuelve siempre "john.doe@example.com" en getAllEmails
+			// y una tarea vencida en getExpiredToDos, por lo que el mailer debe ser invocado
+			assertDoesNotThrow(() -> servicio.broadcastExpiredToDos());
+		}
+
+		@Test
+		public void testBroadcastConFalloDeMailerDevuelveFalseSinLanzarExcepcion()
+		{
+			mailerFake.simularFallo = true;
+
+			// Aunque sendEmail devuelva false, el servicio no debe lanzar excepción
+			assertDoesNotThrow(() -> servicio.broadcastExpiredToDos());
+		}
 	}
 
 	// --- TESTS DE INTEGRACIÓN (con clases reales) -----------------------------------------------
@@ -244,6 +263,60 @@ public class ServicioTest
 			assertEquals(2, db.getAllEmails().size());
 			assertTrue(db.getAllEmails().contains("a@a.com"));
 			assertTrue(db.getAllEmails().contains("b@b.com"));
+		}
+
+		// --- getAllEmails (a través del repositorio) -----------------------------------------------
+
+		@Test
+		public void testGetAllEmailsEstaVacioAlIniciar()
+		{
+			assertTrue(repositorio.getAllEmails().isEmpty());
+		}
+
+		@Test
+		public void testGetAllEmailsDevuelveElEmailAnadidoViaServicio()
+		{
+			simularEntrada("nuevo@correo.com\n");
+			servicio.addEmail();
+
+			assertTrue(repositorio.getAllEmails().contains("nuevo@correo.com"));
+			assertEquals(1, repositorio.getAllEmails().size());
+		}
+
+		@Test
+		public void testGetAllEmailsDevuelveTodosLosEmailsAnadidosViaServicio()
+		{
+			simularEntrada("a@a.com\n");
+			servicio.addEmail();
+			simularEntrada("b@b.com\n");
+			servicio.addEmail();
+			simularEntrada("c@c.com\n");
+			servicio.addEmail();
+
+			assertTrue(repositorio.getAllEmails().contains("a@a.com"));
+			assertTrue(repositorio.getAllEmails().contains("b@b.com"));
+			assertTrue(repositorio.getAllEmails().contains("c@c.com"));
+			assertEquals(3, repositorio.getAllEmails().size());
+		}
+
+		@Test
+		public void testGetAllEmailsNoDevuelveEmailsNoAnadidos()
+		{
+			simularEntrada("a@a.com\n");
+			servicio.addEmail();
+
+			assertFalse(repositorio.getAllEmails().contains("b@b.com"));
+		}
+
+		@Test
+		public void testGetAllEmailsNoAlmacenaEmailsDuplicados()
+		{
+			simularEntrada("a@a.com\n");
+			servicio.addEmail();
+			simularEntrada("a@a.com\n");
+			servicio.addEmail();
+
+			assertEquals(1, repositorio.getAllEmails().size());
 		}
 
 		// --- completarToDo -----------------------------------------------

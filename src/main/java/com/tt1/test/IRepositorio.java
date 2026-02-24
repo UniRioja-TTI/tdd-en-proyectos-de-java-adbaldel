@@ -16,5 +16,7 @@ public interface IRepositorio
 
 	void addToDo(IToDo todo);
 
+	Collection<String> getAllEmails();
+
 	void addEmail(String email);
 }

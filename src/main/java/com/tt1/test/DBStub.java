@@ -1,67 +1,73 @@
 package com.tt1.test;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class DBStub implements IDB
 {
+	private final Map<String, IToDo> todos = new HashMap<>();
+	private final Set<String> emails = new HashSet<>();
+
 	@Override
 	public void insertToDo(IToDo todo)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		todos.putIfAbsent(todo.getNombre(), todo);
 	}
 
 	@Override
 	public IToDo getToDo(IToDo todo)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return todos.get(todo.getNombre());
 	}
 
 	@Override
 	public Collection<IToDo> getAllToDos()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return todos.values();
 	}
 
 	@Override
 	public void updateToDo(IToDo todo)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		todos.put(todo.getNombre(), todo);
 	}
 
 	@Override
 	public void deleteToDo(IToDo todo)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		todos.remove(todo.getNombre());
 	}
 
 	@Override
 	public void insertEmail(String email)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		emails.add(email);
 	}
 
 	@Override
 	public String getEmail(String email)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return emails.contains(email) ? email : null;
 	}
 
 	@Override
 	public Collection<String> getAllEmails()
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		return emails;
 	}
 
 	@Override
 	public void updateEmail(String email)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		emails.add(email);
 	}
 
 	@Override
 	public void deleteEmail(String original)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		emails.remove(original);
 	}
 }

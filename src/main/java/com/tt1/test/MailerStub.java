@@ -5,6 +5,8 @@ public class MailerStub implements IMailer
 	@Override
 	public boolean sendEmail(String address, String message)
 	{
-		throw new UnsupportedOperationException("Clase aún no implementada.");
+		System.out.println("Para: " + address);
+		System.out.println("Mensaje: " + message);
+		return true;
 	}
 }
