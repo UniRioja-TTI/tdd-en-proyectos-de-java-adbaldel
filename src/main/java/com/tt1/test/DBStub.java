@@ -1,73 +1,114 @@
 package com.tt1.test;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.sql.Array;
+import java.util.*;
 
+/**
+ * Simulación de la base de datos para la gestión de tareas y emails utilizando listas no ordenadas.
+ */
 public class DBStub implements IDB
 {
-	private final Map<String, IToDo> todos = new HashMap<>();
-	private final Set<String> emails = new HashSet<>();
+	private List<IToDo> toDos;
+	private List<String> emails;
 
-	@Override
-	public void insertToDo(IToDo todo)
+	public DBStub()
 	{
-		todos.putIfAbsent(todo.getNombre(), todo);
+		toDos = new ArrayList<>();
+		emails = new ArrayList<>();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public IToDo getToDo(IToDo todo)
+	public boolean addToDo(IToDo toDo)
 	{
-		return todos.get(todo.getNombre());
+		IToDo toDoCopy;
+
+		if (!toDos.contains(toDo))
+		{
+			toDoCopy = new ToDo(toDo.getNombre(), toDo.getDescripcion(), toDo.getFechaLimite(), toDo.isCompletado());
+			toDos.add(toDoCopy);
+			return true;
+		}
+
+		return false;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Collection<IToDo> getAllToDos()
 	{
-		return todos.values();
+		List<IToDo> toDosCopy = new ArrayList<>();
+		IToDo toDoCopy;
+
+		for (IToDo toDo : toDos)
+		{
+			toDoCopy = new ToDo(toDo.getNombre(), toDo.getDescripcion(), toDo.getFechaLimite(), toDo.isCompletado());
+			toDosCopy.add(toDoCopy);
+		}
+
+		return toDosCopy;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void updateToDo(IToDo todo)
+	public boolean updateToDo(IToDo toDo)
 	{
-		todos.put(todo.getNombre(), todo);
+		int i;
+
+		if ((i = toDos.indexOf(toDo)) != -1)
+		{
+			toDos.set(i, toDo);
+			return true;
+		}
+
+		return false;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void deleteToDo(IToDo todo)
+	public boolean deleteToDo(IToDo toDo)
 	{
-		todos.remove(todo.getNombre());
+		return toDos.remove(toDo);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void insertEmail(String email)
+	public boolean addEmail(String email)
 	{
-		emails.add(email);
+		if (!emails.contains(email))
+		{
+			emails.add(email);
+			return true;
+		}
+
+		return false;
 	}
 
-	@Override
-	public String getEmail(String email)
-	{
-		return emails.contains(email) ? email : null;
-	}
-
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Collection<String> getAllEmails()
 	{
-		return emails;
+		return new ArrayList<>(emails);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void updateEmail(String email)
+	public boolean deleteEmail(String email)
 	{
-		emails.add(email);
-	}
-
-	@Override
-	public void deleteEmail(String original)
-	{
-		emails.remove(original);
+		return emails.remove(email);
 	}
 }

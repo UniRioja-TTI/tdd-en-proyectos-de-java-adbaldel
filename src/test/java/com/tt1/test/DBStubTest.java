@@ -1,207 +1,442 @@
 package com.tt1.test;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.*;
 
 import java.util.Calendar;
 import java.util.Collection;
 
-public class DBStubTest
+import static org.junit.jupiter.api.Assertions.*;
+
+class DBStubTest
 {
-
 	private DBStub db;
-	private IToDo todo1;
-	private IToDo todo2;
-	private IToDo todo1DTO; // DTO: Data Transfer Object (para buscar en la base de datos el objeto completo)
-	private IToDo todo2DTO; // DTO: Data Transfer Object (para buscar en la base de datos el objeto completo)
-	private Calendar calendarToDo1;
-	private Calendar calendarToDo2;
+	private Calendar calendar;
+	private IToDo toDo;
+	private String email;
 
-	// --- Arrange compartido -----------------------------------------------
+	// --- Arrange Before/After each test -------------------------------------------------------------------
 
 	@BeforeEach
-	public void setUp()
+	void setUp()
 	{
 		db = new DBStub();
-
-		calendarToDo1 = Calendar.getInstance();
-		calendarToDo1.add(Calendar.DAY_OF_YEAR, 5);
-		todo1 = new ToDo("Tarea 1", "Descripción 1", calendarToDo1.getTime());
-		todo1DTO = new ToDo("Tarea 1", null, calendarToDo1.getTime());
-
-		calendarToDo2 = (Calendar) calendarToDo1.clone();
-		calendarToDo2.add(Calendar.DAY_OF_YEAR, 1);
-		todo2 = new ToDo("Tarea 2", "Descripción 2", calendarToDo2.getTime());
-		todo2DTO = new ToDo("Tarea 2", null, calendarToDo2.getTime());
+		calendar = Calendar.getInstance();
+		calendar.add(Calendar.DAY_OF_YEAR, 2);
+		toDo = new ToDo("Tarea test", "Tara para test", calendar.getTime());
+		email = "john.doe@example.com";
 	}
 
 	@AfterEach
-	public void tearDown()
+	void tearDown()
 	{
 		db = null;
-		todo1 = null;
-		todo2 = null;
-		todo1DTO = null;
-		todo2DTO = null;
-		calendarToDo1 = null;
-		calendarToDo2 = null;
+		calendar = null;
+		toDo = null;
+		email = null;
 	}
 
-	// --- CRUD de ToDos -----------------------------------------------
-
-	// CREATE
-	@Test
-	public void testInsertToDoAumentaElTamano()
-	{
-		db.insertToDo(todo1);
-
-		assertEquals(1, db.getAllToDos().size());
-	}
+	// --- Test addToDo -------------------------------------------------------------------
 
 	@Test
-	public void testInsertVariosToDosLosAlmacenaTodos()
+	void addToDo()
 	{
-		db.insertToDo(todo1);
-		db.insertToDo(todo2);
+		boolean success;
 
-		assertEquals(2, db.getAllToDos().size());
+		success = db.addToDo(toDo);
+
+		assertTrue(success);
 	}
 
 	@Test
-	public void testInsertVariosToDosIgualesAlmacenaSoloUno()
+	void addToDoRepetido()
 	{
-		db.insertToDo(todo1);
-		db.insertToDo(todo1);
+		boolean success;
 
-		assertEquals(1, db.getAllToDos().size());
-	}
+		db.addToDo(toDo);
+		success = db.addToDo(toDo);
 
-	// READ
-	@Test
-	public void testGetToDoDevuelveElToDoCorrecto()
-	{
-		db.insertToDo(todo1);
-
-		IToDo resultado = db.getToDo(todo1DTO);
-
-		assertNotNull(resultado);
-		assertEquals(todo1, resultado);
-		assertEquals(todo1.getNombre(), resultado.getNombre());
-		assertEquals(todo1.getDescripcion(), resultado.getDescripcion());
-		assertEquals(todo1.getFechaLimite(), resultado.getFechaLimite());
+		assertFalse(success);
 	}
 
 	@Test
-	public void testGetToDoDevuelveNullSiNoHayToDos()
+	void addToDoMismoNombreDistintaFechaLimite()
 	{
-		IToDo resultado = db.getToDo(todo1DTO);
+		boolean success;
+		db.addToDo(toDo);
+		calendar.add(Calendar.DAY_OF_YEAR, 2);
+		ToDo toDo2 = new ToDo("Tarea test", "Tara para test", calendar.getTime());
 
-		assertNull(resultado);
+		success = db.addToDo(toDo2);
+
+		assertTrue(success);
+	}
+
+	// --- Test getAllToDos -------------------------------------------------------------------
+
+	@Test
+	void getAllToDos()
+	{
+		Collection<IToDo> toDos = db.getAllToDos();
+
+		assertEquals(0, toDos.size());
+	}
+
+	// --- Test updateToDo (y addToDo) -------------------------------------------------------------------
+
+	@Test
+	void updateToDoNoExistente()
+	{
+		boolean success;
+
+		success = db.updateToDo(toDo);
+
+		assertFalse(success);
 	}
 
 	@Test
-	public void testGetToDoDevuelveNullSiNoExiste()
+	void updateToDoExistente()
 	{
-		db.insertToDo(todo1);
+		boolean success;
 
-		IToDo resultado = db.getToDo(todo2DTO);
+		db.addToDo(toDo);
+		success = db.updateToDo(toDo);
 
-		assertNull(resultado);
+		assertTrue(success);
 	}
 
 	@Test
-	public void testGetAllToDosEstaVacioAlIniciar()
+	void updateDescripcionToDoExistente()
 	{
-		assertTrue(db.getAllToDos().isEmpty());
+		boolean success;
+		IToDo toDo2 = new ToDo(toDo.getNombre(), "Tara para test diferente", toDo.getFechaLimite());
+
+		db.addToDo(toDo);
+		success = db.updateToDo(toDo2);
+
+		assertTrue(success);
 	}
 
 	@Test
-	public void testGetAllToDosDevuelveTodosLosElementos()
+	void updateCompletadoToDoExistente()
 	{
-		db.insertToDo(todo1);
-		db.insertToDo(todo2);
+		boolean success;
+		IToDo toDo2 = new ToDo(toDo.getNombre(), toDo.getDescripcion(), toDo.getFechaLimite(), true);
 
-		Collection<IToDo> todos = db.getAllToDos();
+		db.addToDo(toDo);
+		success = db.updateToDo(toDo2);
 
-		assertTrue(todos.contains(todo1));
-		assertTrue(todos.contains(todo2));
+		assertTrue(success);
 	}
 
-	// UPDATE
+	// --- Test deleteToDo (y addToDo) -------------------------------------------------------------------
+
 	@Test
-	public void testUpdateToDoModificaElToDoExistente()
+	void deleteToDoNoExistente()
 	{
-		db.insertToDo(todo1);
-		todo1.setDescripcion("Descripción modificada");
-		db.updateToDo(todo1);
+		boolean success;
 
-		IToDo resultado = db.getToDo(todo1DTO);
+		success = db.deleteToDo(toDo);
 
-		assertEquals("Descripción modificada", resultado.getDescripcion());
-		assertEquals(todo1, resultado);
-		assertEquals(todo1.getNombre(), resultado.getNombre());
-		assertEquals(todo1.getDescripcion(), resultado.getDescripcion());
-		assertEquals(todo1.getFechaLimite(), resultado.getFechaLimite());
-	}
-
-	// DELETE
-	@Test
-	public void testDeleteToDoEliminaElToDo()
-	{
-		db.insertToDo(todo1);
-		db.deleteToDo(todo1DTO);
-
-		assertNull(db.getToDo(todo1DTO));
+		assertFalse(success);
 	}
 
 	@Test
-	public void testDeleteToDoReduceElTamano()
+	void deleteToDoExistente()
 	{
-		db.insertToDo(todo1);
-		db.insertToDo(todo2);
-		db.deleteToDo(todo1DTO);
+		boolean success;
 
-		assertEquals(1, db.getAllToDos().size());
+		db.addToDo(toDo);
+		success = db.deleteToDo(toDo);
+
+		assertTrue(success);
 	}
 
-	// --- Gestión de emails -----------------------------------------------
+	// --- Test addEmail -------------------------------------------------------------------
 
 	@Test
-	public void testInsertEmailAlmacenaElEmail()
+	void addEmail()
 	{
-		db.insertEmail("john.doe@ejemplo.com");
+		boolean success;
 
-		assertTrue(db.getAllEmails().contains("john.doe@ejemplo.com"));
-		assertEquals(1, db.getAllEmails().size());
+		success = db.addEmail(email);
+
+		assertTrue(success);
+	}
+
+	void addEmailRepetido()
+	{
+		boolean success;
+		db.addEmail(email);
+
+		success = db.addEmail(email);
+
+		assertFalse(success);
+	}
+
+	// --- Test getAllEmails -------------------------------------------------------------------
+
+	@Test
+	void getAllEmails()
+	{
+		Collection<String> emails;
+
+		emails = db.getAllEmails();
+
+		assertEquals(0, emails.size());
+	}
+
+	// --- Test deleteEmail (y addEmail) -------------------------------------------------------------------
+
+	@Test
+	void deleteEmailNoExistente()
+	{
+		boolean success;
+
+		success = db.deleteEmail(email);
+
+		assertFalse(success);
 	}
 
 	@Test
-	public void testInsertVariosEmailsLosAlmacenaTodos()
+	void deleteEmailExistente()
 	{
-		db.insertEmail("a@a.com");
-		db.insertEmail("b@b.com");
+		boolean success;
+		db.addEmail(email);
 
-		assertEquals(2, db.getAllEmails().size());
-		assertTrue(db.getAllEmails().contains("a@a.com"));
-		assertTrue(db.getAllEmails().contains("b@b.com"));
+		success = db.deleteEmail(email);
+
+		assertTrue(success);
+	}
+
+	// --- Test addToDo y getAllToDos -------------------------------------------------------------------
+
+	void addToDoUnicoYGetAllToDos()
+	{
+		boolean success;
+		Collection<IToDo> toDos;
+
+		success = db.addToDo(toDo);
+		toDos = db.getAllToDos();
+
+		assertTrue(success); // Redundante con el test addToDoUnico
+		assertEquals(1, toDos.size());
+		assertTrue(toDos.contains(toDo));
+	}
+
+	void addToDoRepetidoYGetAllToDos()
+	{
+		boolean success;
+		Collection<IToDo> toDos;
+		db.addToDo(toDo);
+
+		success = db.addToDo(toDo);
+		toDos = db.getAllToDos();
+
+		assertFalse(success); // Redundante con el test addToDoRepetido
+		assertEquals(1, toDos.size());
+		assertTrue(toDos.contains(toDo));
+	}
+
+	void addToDoMismoNombreDistintaFechaLimiteYGetAllToDos()
+	{
+		boolean success;
+		Collection<IToDo> toDos;
+		db.addToDo(toDo);
+		calendar.add(Calendar.DAY_OF_YEAR, 2);
+		IToDo toDo2 = new ToDo(toDo.getNombre(), "Tara para test", calendar.getTime());
+
+		success = db.addToDo(toDo2);
+		toDos = db.getAllToDos();
+
+		assertTrue(success); // Redundante con el test addToDoMismoNombreDistintaFechaLimite
+		assertEquals(2, toDos.size());
+		assertTrue(toDos.contains(toDo));
+		assertTrue(toDos.contains(toDo2));
+	}
+
+	void addToDoDiferentesYRepetidosYGetAllToDos()
+	{
+		boolean success1, success2, success3, success4, success5, success6;
+		IToDo toDo2, toDo3, toDo4;
+		Collection<IToDo> toDos;
+
+		toDo2 = new ToDo("Tarea test 2", "Tara para test", calendar.getTime());
+		calendar.add(Calendar.DAY_OF_YEAR, 2);
+		toDo3 = new ToDo("Tarea test 3", "Tara para test 3", calendar.getTime());
+		calendar.add(Calendar.DAY_OF_YEAR, -2);
+		toDo4 = new ToDo("Tarea test 3", "Tarea test 4", calendar.getTime());
+
+		success1 = db.addToDo(toDo); // Lo añade y es igual a toDo1
+		toDo.setNombre("Tarea test 2");
+		success2 = db.addToDo(toDo); // Lo añade y es igual a toDo2
+		success3 = db.addToDo(toDo); // No lo añade porque ya está añadido
+		success4 = db.addToDo(toDo2);// No lo añade porque ya hay uno igual
+		success5 = db.addToDo(toDo3);// Lo añade y es igual a toDo3
+		success6 = db.addToDo(toDo4);// Lo añade y es igual a toDo4
+		toDos = db.getAllToDos();
+		toDo.setNombre("Tarea test");
+
+		assertTrue(success1);
+		assertTrue(success2);
+		assertFalse(success3);
+		assertFalse(success4);
+		assertTrue(success5);
+		assertTrue(success6);
+		assertEquals(4,  toDos.size());
+		assertTrue(toDos.contains(toDo));
+		assertTrue(toDos.contains(toDo2));
+		assertTrue(toDos.contains(toDo3));
+		assertTrue(toDos.contains(toDo4));
+	}
+
+	// --- Test updateToDo (y addToDo) y getAllToDos -------------------------------------------------------------------
+
+	@Test
+	void updateToDoNoExistenteYGetAllToDos()
+	{
+		boolean success;
+		Collection<IToDo> toDos;
+
+		success = db.updateToDo(toDo);
+		toDos = db.getAllToDos();
+
+		assertFalse(success);
+		assertEquals(0, toDos.size());
 	}
 
 	@Test
-	public void testInsertVariosEmailsIgualesAlmacenaSoloUno()
+	void updateToDoExistenteYGetAllToDos()
 	{
-		db.insertEmail("john.doe@ejemplo.com");
-		db.insertEmail("john.doe@ejemplo.com");
+		boolean success;
+		Collection<IToDo> toDos;
 
-		assertEquals(1, db.getAllEmails().size());
-		assertTrue(db.getAllEmails().contains("john.doe@ejemplo.com"));
+		db.addToDo(toDo);
+		success = db.updateToDo(toDo);
+		toDos = db.getAllToDos();
+
+		assertTrue(success);
+		assertEquals(1, toDos.size());
+		assertTrue(toDos.contains(toDo));
 	}
 
 	@Test
-	public void testGetEmailsEstaVacioAlIniciar()
+	void updateDescripcionToDoExistenteYGetAllToDos()
 	{
-		assertTrue(db.getAllEmails().isEmpty());
+		boolean success;
+		IToDo toDo2 = new ToDo(toDo.getNombre(), "Tara para test diferente", toDo.getFechaLimite());
+		Collection<IToDo> toDos;
+
+		db.addToDo(toDo);
+		success = db.updateToDo(toDo2);
+		toDos = db.getAllToDos();
+
+		assertTrue(success);
+		assertEquals(1, toDos.size());
+		assertTrue(toDos.contains(toDo2));
+		assertEquals("Tara para test diferente", toDos.iterator().next().getDescripcion());
+	}
+
+	@Test
+	void updateCompletadoToDoExistenteYGetAllToDos()
+	{
+		boolean success;
+		IToDo toDo2 = new ToDo(toDo.getNombre(), toDo.getDescripcion(), toDo.getFechaLimite(), true);
+		Collection<IToDo> toDos;
+
+		db.addToDo(toDo);
+		success = db.updateToDo(toDo2);
+		toDos = db.getAllToDos();
+
+		assertTrue(success);
+		assertEquals(1, toDos.size());
+		assertTrue(toDos.contains(toDo2));
+		assertEquals(toDo2.isCompletado(), toDos.iterator().next().isCompletado());
+	}
+
+	// --- Test deleteToDo (y addToDo) y getAllToDos -------------------------------------------------------------------
+
+	@Test
+	void deleteToDoNoExistenteYGetAllToDos()
+	{
+		boolean success;
+		Collection<IToDo> toDos;
+
+		success = db.deleteToDo(toDo);
+		toDos = db.getAllToDos();
+
+		assertFalse(success);
+		assertEquals(0, toDos.size());
+	}
+
+	@Test
+	void deleteToDoExistenteYGetAllToDos()
+	{
+		boolean success;
+		Collection<IToDo> toDos;
+
+		db.addToDo(toDo);
+		success = db.deleteToDo(toDo);
+		toDos = db.getAllToDos();
+
+		assertTrue(success);
+		assertEquals(0, toDos.size());
+	}
+
+	// --- Test addEmail y getAllEmails -------------------------------------------------------------------
+
+	void addEmailUnicoYGetAllEmails()
+	{
+		boolean success;
+		Collection<String> emails;
+
+		success = db.addEmail(email);
+		emails = db.getAllEmails();
+
+		assertTrue(success); // Redundante con el test addEmailUnico
+		assertEquals(1, emails.size());
+		assertTrue(emails.contains(email));
+	}
+
+	void addEmailRepetidoYGetAllEmails()
+	{
+		boolean success;
+		Collection<String> emails;
+
+		db.addEmail(email);
+		success = db.addEmail(email);
+		emails = db.getAllEmails();
+
+		assertFalse(success); // Redundante con el test addEmailRepetido
+		assertEquals(1, emails.size());
+		assertTrue(emails.contains(email));
+	}
+
+	// --- Test deleteEmail (y addEmail) y getAllEmails -------------------------------------------------------------------
+
+	@Test
+	void deleteEmailNoExistenteYGetAllEmails()
+	{
+		boolean success;
+		Collection<String> emails;
+
+		success = db.deleteEmail(email);
+		emails = db.getAllEmails();
+
+		assertFalse(success);
+		assertEquals(0, emails.size());
+	}
+
+	@Test
+	void deleteEmailExistenteYGetAllEmails()
+	{
+		boolean success;
+		Collection<String> emails;
+
+		db.addEmail(email);
+		success = db.deleteEmail(email);
+		emails = db.getAllEmails();
+
+		assertTrue(success);
+		assertEquals(0, emails.size());
 	}
 }

@@ -1,573 +1,615 @@
 package com.tt1.test;
 
-import com.tt1.test.fake.DBFake;
-import com.tt1.test.fake.MailerFake;
-import com.tt1.test.fake.RepositorioFake;
+import com.tt1.test.mocks.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.util.Calendar;
-
-public class ServicioTest
+class ServicioTest
 {
-	// --- TEST UNITARIOS (con clases falsas) -----------------------------------------------
+	private Servicio servicio;
+	private IRepositorio repositorio;
+	private IMailer mailer;
+	private Calendar calendar, expiredCalendarAvisos;
+	private IToDo toDo;
+	private String email;
+	private Collection<IToDo> expiredToDosAvisos;
+	private Collection<String> emailsAvisos;
 
-	@Nested
-	class TestsUnitarios
+	// --- Arrange Before/After each test -------------------------------------------------------------------
+
+	@BeforeEach
+	void setUp()
 	{
-		private RepositorioFake repositorioFake;
-		private MailerFake mailerFake;
-		private Servicio servicio;
-
-		private final ByteArrayOutputStream salidaCapturada = new ByteArrayOutputStream();
-		private final PrintStream salidaOriginal = System.out;
-		private final InputStream entradaOriginal = System.in;
-
-		// --- Arrange compartido -----------------------------------------------
-
-		@BeforeEach
-		public void setUp()
-		{
-			repositorioFake = new RepositorioFake();
-			mailerFake = new MailerFake();
-			servicio = new Servicio(repositorioFake, mailerFake);
-			System.setOut(new PrintStream(salidaCapturada));
-		}
-
-		@AfterEach
-		public void tearDown()
-		{
-			System.setOut(salidaOriginal);
-			System.setIn(entradaOriginal);
-			salidaCapturada.reset();
-			repositorioFake = null;
-			mailerFake = null;
-			servicio = null;
-		}
-
-		private void simularEntrada(String entrada)
-		{
-			System.setIn(new ByteArrayInputStream(entrada.getBytes()));
-		}
-
-		// --- getUnfinishedToDos -----------------------------------------------
-
-		@Test
-		public void testGetUnfinishedToDosImprimeLasTareasPendientes()
-		{
-			servicio.getUnfinishedToDos();
-			String salida = salidaCapturada.toString();
-
-			assertTrue(salida.contains("ToDo 1"));
-			assertTrue(salida.contains("ToDo 2"));
-			assertTrue(salida.contains("ToDo 3"));
-		}
-
-		// --- getExpiredToDos -----------------------------------------------
-
-		@Test
-		public void testGetExpiredToDosImprimeLasTareasVencidas()
-		{
-			servicio.getExpiredToDos();
-			String salida = salidaCapturada.toString();
-
-			assertTrue(salida.contains("ToDo 3"));
-		}
-
-		@Test
-		public void testGetExpiredToDosNoImprimeLosToDosNoVencidos()
-		{
-			servicio.getExpiredToDos();
-			String salida = salidaCapturada.toString();
-
-			assertFalse(salida.contains("ToDo 1"));
-			assertFalse(salida.contains("ToDo 2"));
-		}
-
-		// --- broadcastExpiredToDos -----------------------------------------------
-
-		@Test
-		public void testBroadcastExpiredToDosNoLanzaExcepcion()
-		{
-			assertDoesNotThrow(() -> servicio.broadcastExpiredToDos());
-		}
-
-		@Test
-		public void testBroadcastExpiredToDosConFalloEnMailerNoLanzaExcepcion()
-		{
-			mailerFake.simularFallo = true;
-
-			assertDoesNotThrow(() -> servicio.broadcastExpiredToDos());
-		}
-
-		// --- addToDo -----------------------------------------------
-
-		@Test
-		public void testAddToDoLeeLaEntradaYNoLanzaExcepcion()
-		{
-			simularEntrada("Mi tarea\nDescripción de la tarea\n25/12/2026\n");
-
-			assertDoesNotThrow(() -> servicio.addToDo());
-		}
-
-		// --- addEmail -----------------------------------------------
-
-		@Test
-		public void testAddEmailLeeLaEntradaYNoLanzaExcepcion()
-		{
-			simularEntrada("test@test.com\n");
-
-			assertDoesNotThrow(() -> servicio.addEmail());
-		}
-
-		// --- completarToDo -----------------------------------------------
-
-		@Test
-		public void testCompletarToDoLeeLaEntradaYNoLanzaExcepcion()
-		{
-			simularEntrada("ToDo 1\n");
-
-			assertDoesNotThrow(() -> servicio.completarToDo());
-		}
-
-		// --- getAllEmails (a través del repositorio) -----------------------------------------------
-
-		@Test
-		public void testBroadcastUsaLosEmailsDelRepositorio()
-		{
-			// RepositorioFake devuelve siempre "john.doe@example.com" en getAllEmails
-			// y una tarea vencida en getExpiredToDos, por lo que el mailer debe ser invocado
-			assertDoesNotThrow(() -> servicio.broadcastExpiredToDos());
-		}
-
-		@Test
-		public void testBroadcastConFalloDeMailerDevuelveFalseSinLanzarExcepcion()
-		{
-			mailerFake.simularFallo = true;
-
-			// Aunque sendEmail devuelva false, el servicio no debe lanzar excepción
-			assertDoesNotThrow(() -> servicio.broadcastExpiredToDos());
-		}
+		repositorio = null;
+		mailer = null;
+		calendar = Calendar.getInstance();
+		calendar.add(Calendar.DAY_OF_YEAR, 2);
+		toDo = new ToDo("Tarea test", "Tara para test", calendar.getTime());
+		email = "john.doe@example.com";
+		expiredCalendarAvisos = Calendar.getInstance();
+		expiredCalendarAvisos.add(Calendar.DAY_OF_YEAR, -1);
+		expiredToDosAvisos = List.of(
+			new ToDo("Tarea expirada test 1", "Tarea expirada para test de avisos",
+				expiredCalendarAvisos.getTime()),
+			new ToDo("Tarea expirada test 2", "Tarea expirada para test de avisos",
+				expiredCalendarAvisos.getTime())
+		);
+		emailsAvisos = List.of(
+			email,
+			"pepe@example.com",
+			"maria.garcia@example.com"
+		);
 	}
 
-	// --- TESTS DE INTEGRACIÓN (con clases reales) -----------------------------------------------
-
-	@Nested
-	class TestsDeIntegracion
+	@AfterEach
+	void tearDown()
 	{
-		private IDB db;
-		private IRepositorio repositorio;
-		private MailerStub mailer;
-		private Servicio servicio;
-
-		private final ByteArrayOutputStream salidaCapturada = new ByteArrayOutputStream();
-		private final PrintStream salidaOriginal = System.out;
-		private final InputStream entradaOriginal = System.in;
-
-		// --- Arrange compartido -----------------------------------------------
-
-		@BeforeEach
-		public void setUp()
-		{
-			db = new DBStub();
-			repositorio = new Repositorio(db);
-			mailer = new MailerStub();
-			servicio = new Servicio(repositorio, mailer);
-			System.setOut(new PrintStream(salidaCapturada));
-		}
-
-		@AfterEach
-		public void tearDown()
-		{
-			System.setOut(salidaOriginal);
-			System.setIn(entradaOriginal);
-			salidaCapturada.reset();
-			db = null;
-			repositorio = null;
-			mailer = null;
-			servicio = null;
-		}
-
-		private void simularEntrada(String entrada)
-		{
-			System.setIn(new ByteArrayInputStream(entrada.getBytes()));
-		}
-
-		// --- addToDo -----------------------------------------------
-
-		@Test
-		public void testAddToDoAlmacenaLaTareaEnElRepositorio()
-		{
-			simularEntrada("Tarea nueva\nDescripción\n25/12/2026\n");
-
-			servicio.addToDo();
-
-			IToDo resultado = repositorio.getToDo(new ToDo("Tarea nueva", null, null));
-			assertNotNull(resultado);
-			assertEquals("Tarea nueva", resultado.getNombre());
-		}
-
-		@Test
-		public void testAddToDoAlmacenaLaTareaEnLaBaseDeDatos()
-		{
-			simularEntrada("Tarea nueva\nDescripción\n25/12/2026\n");
-
-			servicio.addToDo();
-
-			IToDo resultado = db.getToDo(new ToDo("Tarea nueva", null, null));
-			assertNotNull(resultado);
-			assertEquals("Tarea nueva", resultado.getNombre());
-		}
-
-		@Test
-		public void testAddToDoVariasTareasSeAlmacenanTodas()
-		{
-			simularEntrada("Tarea 1\nDesc 1\n25/12/2026\n");
-			servicio.addToDo();
-
-			simularEntrada("Tarea 2\nDesc 2\n26/12/2026\n");
-			servicio.addToDo();
-
-			assertEquals(2, db.getAllToDos().size());
-		}
-
-		// --- addEmail -----------------------------------------------
-
-		@Test
-		public void testAddEmailAlmacenaElEmailEnLaBaseDeDatos()
-		{
-			simularEntrada("nuevo@correo.com\n");
-
-			servicio.addEmail();
-
-			assertTrue(db.getAllEmails().contains("nuevo@correo.com"));
-		}
-
-		@Test
-		public void testAddEmailVariosEmailsSeAlmacenanTodos()
-		{
-			simularEntrada("a@a.com\n");
-			servicio.addEmail();
-
-			simularEntrada("b@b.com\n");
-			servicio.addEmail();
-
-			assertEquals(2, db.getAllEmails().size());
-			assertTrue(db.getAllEmails().contains("a@a.com"));
-			assertTrue(db.getAllEmails().contains("b@b.com"));
-		}
-
-		// --- getAllEmails (a través del repositorio) -----------------------------------------------
-
-		@Test
-		public void testGetAllEmailsEstaVacioAlIniciar()
-		{
-			assertTrue(repositorio.getAllEmails().isEmpty());
-		}
-
-		@Test
-		public void testGetAllEmailsDevuelveElEmailAnadidoViaServicio()
-		{
-			simularEntrada("nuevo@correo.com\n");
-			servicio.addEmail();
-
-			assertTrue(repositorio.getAllEmails().contains("nuevo@correo.com"));
-			assertEquals(1, repositorio.getAllEmails().size());
-		}
-
-		@Test
-		public void testGetAllEmailsDevuelveTodosLosEmailsAnadidosViaServicio()
-		{
-			simularEntrada("a@a.com\n");
-			servicio.addEmail();
-			simularEntrada("b@b.com\n");
-			servicio.addEmail();
-			simularEntrada("c@c.com\n");
-			servicio.addEmail();
-
-			assertTrue(repositorio.getAllEmails().contains("a@a.com"));
-			assertTrue(repositorio.getAllEmails().contains("b@b.com"));
-			assertTrue(repositorio.getAllEmails().contains("c@c.com"));
-			assertEquals(3, repositorio.getAllEmails().size());
-		}
-
-		@Test
-		public void testGetAllEmailsNoDevuelveEmailsNoAnadidos()
-		{
-			simularEntrada("a@a.com\n");
-			servicio.addEmail();
-
-			assertFalse(repositorio.getAllEmails().contains("b@b.com"));
-		}
-
-		@Test
-		public void testGetAllEmailsNoAlmacenaEmailsDuplicados()
-		{
-			simularEntrada("a@a.com\n");
-			servicio.addEmail();
-			simularEntrada("a@a.com\n");
-			servicio.addEmail();
-
-			assertEquals(1, repositorio.getAllEmails().size());
-		}
-
-		// --- completarToDo -----------------------------------------------
-
-		@Test
-		public void testCompletarToDoMarcaLaTareaComoCompletada()
-		{
-			simularEntrada("Tarea completar\nDesc\n25/12/2026\n");
-			servicio.addToDo();
-
-			simularEntrada("Tarea completar\n");
-			servicio.completarToDo();
-
-			IToDo resultado = repositorio.getToDo(new ToDo("Tarea completar", null, null));
-			assertTrue(resultado.isCompletado());
-		}
-
-		@Test
-		public void testCompletarToDoMarcaLaTareaComoCompletadaEnLaBaseDeDatos()
-		{
-			simularEntrada("Tarea completar\nDesc\n25/12/2026\n");
-			servicio.addToDo();
-
-			simularEntrada("Tarea completar\n");
-			servicio.completarToDo();
-
-			IToDo resultado = db.getToDo(new ToDo("Tarea completar", null, null));
-			assertTrue(resultado.isCompletado());
-		}
-
-		@Test
-		public void testCompletarToDoNoAfectaAOtrasTareas()
-		{
-			simularEntrada("Tarea 1\nDesc\n25/12/2026\n");
-			servicio.addToDo();
-			simularEntrada("Tarea 2\nDesc\n26/12/2026\n");
-			servicio.addToDo();
-
-			simularEntrada("Tarea 1\n");
-			servicio.completarToDo();
-
-			IToDo resultado = repositorio.getToDo(new ToDo("Tarea 2", null, null));
-			assertFalse(resultado.isCompletado());
-		}
-
-		// --- getUnfinishedToDos -----------------------------------------------
-
-		@Test
-		public void testGetUnfinishedToDosImprimeLasTareasPendientes()
-		{
-			simularEntrada("Tarea pendiente\nDesc\n25/12/2026\n");
-			servicio.addToDo();
-			salidaCapturada.reset();
-
-			servicio.getUnfinishedToDos();
-
-			assertTrue(salidaCapturada.toString().contains("Tarea pendiente"));
-		}
-
-		@Test
-		public void testGetUnfinishedToDosNoImprimeToDoCompletado()
-		{
-			simularEntrada("Tarea a completar\nDesc\n25/12/2026\n");
-			servicio.addToDo();
-			simularEntrada("Tarea a completar\n");
-			servicio.completarToDo();
-			salidaCapturada.reset();
-
-			servicio.getUnfinishedToDos();
-
-			assertFalse(salidaCapturada.toString().contains("Tarea a completar"));
-		}
-
-		@Test
-		public void testGetUnfinishedToDosDevuelveVacioSiTodosCompletados()
-		{
-			simularEntrada("Tarea 1\nDesc\n25/12/2026\n");
-			servicio.addToDo();
-			simularEntrada("Tarea 1\n");
-			servicio.completarToDo();
-			salidaCapturada.reset();
-
-			servicio.getUnfinishedToDos();
-
-			assertTrue(repositorio.getUnfinishedToDos().isEmpty());
-		}
-
-		// --- getExpiredToDos -----------------------------------------------
-
-		@Test
-		public void testGetExpiredToDosImprimeLasTareasVencidas()
-		{
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea vencida", "Desc", ayer.getTime()));
-			salidaCapturada.reset();
-
-			servicio.getExpiredToDos();
-
-			assertTrue(salidaCapturada.toString().contains("Tarea vencida"));
-		}
-
-		@Test
-		public void testGetExpiredToDosNoImprimeTareasNoVencidas()
-		{
-			Calendar manana = Calendar.getInstance();
-			manana.add(Calendar.DAY_OF_YEAR, 1);
-			repositorio.addToDo(new ToDo("Tarea futura", "Desc", manana.getTime()));
-			salidaCapturada.reset();
-
-			servicio.getExpiredToDos();
-
-			assertFalse(salidaCapturada.toString().contains("Tarea futura"));
-		}
-
-		@Test
-		public void testGetExpiredToDosNoImprimeTareasVencidasYaCompletadas()
-		{
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea completada vencida", "Desc", ayer.getTime()));
-			repositorio.completarToDo(new ToDo("Tarea completada vencida", null, null));
-			salidaCapturada.reset();
-
-			servicio.getExpiredToDos();
-
-			assertFalse(salidaCapturada.toString().contains("Tarea completada vencida"));
-		}
-
-		// --- broadcastExpiredToDos -----------------------------------------------
-
-		@Test
-		public void testBroadcastExpiredToDosEnviaCorreoConLaDireccionCorrecta()
-		{
-			repositorio.addEmail("alerta@test.com");
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea vencida", "Desc", ayer.getTime()));
-			salidaCapturada.reset();
-
-			servicio.broadcastExpiredToDos();
-
-			assertTrue(salidaCapturada.toString().contains("alerta@test.com"));
-		}
-
-		@Test
-		public void testBroadcastExpiredToDosEnviaCorreoATodasLasDirecciones()
-		{
-			repositorio.addEmail("uno@test.com");
-			repositorio.addEmail("dos@test.com");
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea vencida", "Desc", ayer.getTime()));
-			salidaCapturada.reset();
-
-			servicio.broadcastExpiredToDos();
-
-			String salida = salidaCapturada.toString();
-			assertTrue(salida.contains("uno@test.com"));
-			assertTrue(salida.contains("dos@test.com"));
-		}
-
-		@Test
-		public void testBroadcastExpiredToDosNoEnviaCorreoSiNoHayTareasVencidas()
-		{
-			repositorio.addEmail("alerta@test.com");
-			Calendar manana = Calendar.getInstance();
-			manana.add(Calendar.DAY_OF_YEAR, 1);
-			repositorio.addToDo(new ToDo("Tarea futura", "Desc", manana.getTime()));
-			salidaCapturada.reset();
-
-			servicio.broadcastExpiredToDos();
-
-			assertFalse(salidaCapturada.toString().contains("alerta@test.com"));
-		}
-
-		@Test
-		public void testBroadcastExpiredToDosNoEnviaCorreoSiNoHayEmails()
-		{
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea vencida", "Desc", ayer.getTime()));
-			salidaCapturada.reset();
-
-			// No emails registered; the mailer (MailerStub) should never be called,
-			// so nothing related to email sending should appear in the output
-			servicio.broadcastExpiredToDos();
-
-			assertTrue(salidaCapturada.toString().isEmpty());
-		}
-
-		@Test
-		public void testBroadcastExpiredToDosImprimeElNombreDeLaTareaVencidaEnElMensaje()
-		{
-			repositorio.addEmail("alerta@test.com");
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea vencida", "Desc", ayer.getTime()));
-			salidaCapturada.reset();
-
-			servicio.broadcastExpiredToDos();
-
-			assertTrue(salidaCapturada.toString().contains("Tarea vencida"));
-		}
-
-		// --- Broadcast automático en otras operaciones -----------------------------------------------
-
-		@Test
-		public void testAddToDoActivaBroadcastSiHayTareasVencidas()
-		{
-			repositorio.addEmail("alerta@test.com");
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea vencida", "Desc", ayer.getTime()));
-			salidaCapturada.reset();
-
-			simularEntrada("Nueva tarea\nDesc\n25/12/2026\n");
-			servicio.addToDo();
-
-			assertTrue(salidaCapturada.toString().contains("alerta@test.com"));
-		}
-
-		@Test
-		public void testGetUnfinishedToDosActivaBroadcastSiHayTareasVencidas()
-		{
-			repositorio.addEmail("alerta@test.com");
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea vencida", "Desc", ayer.getTime()));
-			salidaCapturada.reset();
-
-			servicio.getUnfinishedToDos();
-
-			assertTrue(salidaCapturada.toString().contains("alerta@test.com"));
-		}
-
-		@Test
-		public void testCompletarToDoActivaBroadcastSiHayTareasVencidas()
-		{
-			repositorio.addEmail("alerta@test.com");
-			Calendar ayer = Calendar.getInstance();
-			ayer.add(Calendar.DAY_OF_YEAR, -1);
-			repositorio.addToDo(new ToDo("Tarea vencida", "Desc", ayer.getTime()));
-			simularEntrada("Tarea pendiente\nDesc\n25/12/2026\n");
-			servicio.addToDo();
-			salidaCapturada.reset();
-
-			simularEntrada("Tarea pendiente\n");
-			servicio.completarToDo();
-
-			assertTrue(salidaCapturada.toString().contains("alerta@test.com"));
-		}
+		servicio = null;
+		repositorio = null;
+		mailer = null;
+		calendar = null;
+		expiredCalendarAvisos = null;
+		toDo = null;
+		email = null;
+		expiredToDosAvisos = null;
+		emailsAvisos = null;
+	}
+
+	// --- -------------- -------------------------------------------------------------------
+	// --- TEST UNITARIOS -------------------------------------------------------------------
+	// --- -------------- -------------------------------------------------------------------
+
+	// --- Test addToDo -------------------------------------------------------------------
+
+	@Test
+	void addToDoSobreFake()
+	{
+		repositorio = new RepositorioFakeAddToDo(true);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.addToDo(toDo);
+
+		assertTrue(success);
+	}
+
+	@Test
+	void addToDoRepetidoSobreFake()
+	{
+		repositorio = new RepositorioFakeAddToDo(false);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoConNombreNuloSobreFake()
+	{
+		repositorio = new RepositorioFakeAddToDo(false);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		toDo.setNombre(null);
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoConNombreVacioSobreFake()
+	{
+		repositorio = new RepositorioFakeAddToDo(false);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		toDo.setNombre(" ");
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoConDescripcionNulaSobreFake()
+	{
+		repositorio = new RepositorioFakeAddToDo(false);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		toDo.setDescripcion(null);
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoConFechaLimiteNulaSobreFake()
+	{
+		repositorio = new RepositorioFakeAddToDo(false);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		toDo.setFechaLimite(null);
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoAvisosSobreFake()
+	{
+		repositorio = new RepositorioFakeAddToDoAvisos(true, expiredToDosAvisos, emailsAvisos);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+
+		servicio.addToDo(toDo);
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	// --- Test completarToDo -------------------------------------------------------------------
+
+	@Test
+	void completarToDoNoExistenteSobreFake()
+	{
+		repositorio = new RepositorioFakeCompletarToDo(false);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.completarToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void completarToDoExistenteSobreFake()
+	{
+		repositorio = new RepositorioFakeCompletarToDo(true);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.completarToDo(toDo);
+
+		assertTrue(success);
+	}
+
+	@Test
+	void completarToDoExistenteAvisosSobreFake()
+	{
+		repositorio = new RepositorioFakeCompletarToDoAvisos(false, expiredToDosAvisos, emailsAvisos);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+
+		servicio.completarToDo(toDo);
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	// --- Test getUnfinishedToDos -------------------------------------------------------------------
+
+	@Test
+	void getUnfinishedToDosSobreFake()
+	{
+		IToDo toDo2, toDo3, toDo4;
+		Collection<IToDo> unfinishedToDos;
+		toDo2 = new ToDo("Tarea test 2", "Tara para test", calendar.getTime());
+		toDo3 = new ToDo("Tarea test 3", "Tara para test", calendar.getTime());
+		toDo4 = new ToDo("Tarea test 4", "Tara para test", calendar.getTime());
+		repositorio = new RepositorioFakeGetUnfinishedToDos(List.of(toDo, toDo2, toDo3, toDo4));
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+
+		unfinishedToDos = servicio.getUnfinishedToDos();
+
+		assertEquals(4,  unfinishedToDos.size());
+		assertTrue(unfinishedToDos.contains(toDo));
+		assertTrue(unfinishedToDos.contains(toDo2));
+		assertTrue(unfinishedToDos.contains(toDo3));
+		assertTrue(unfinishedToDos.contains(toDo4));
+	}
+
+	@Test
+	void getUnfinishedToDosAvisosSobreFake()
+	{
+		IToDo toDo2, toDo3, toDo4;
+		toDo2 = new ToDo("Tarea test 2", "Tara para test", calendar.getTime());
+		toDo3 = new ToDo("Tarea test 3", "Tara para test", calendar.getTime());
+		toDo4 = new ToDo("Tarea test 4", "Tara para test", calendar.getTime());
+		Collection<IToDo> unfinishedToDos = new ArrayList<>(List.of(toDo, toDo2, toDo3, toDo4));
+		unfinishedToDos.addAll(expiredToDosAvisos);
+		repositorio = new RepositorioFakeGetUnfinishedToDosAvisos(unfinishedToDos, expiredToDosAvisos, emailsAvisos);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+
+		servicio.getUnfinishedToDos();
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	// --- Test addEmail -------------------------------------------------------------------
+
+	@Test
+	void addEmailSobreFake()
+	{
+		repositorio = new RepositorioFakeAddEmail(true);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.addEmail(email);
+
+		assertTrue(success);
+	}
+
+	@Test
+	void addEmailRepetidoSobreFake()
+	{
+		repositorio = new RepositorioFakeAddEmail(false);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.addEmail(email);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addEmailNoValidoSobreFake()
+	{
+		repositorio = new RepositorioFakeAddEmail(false);
+		mailer = new MailerFakeSendEmail(true);
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.addEmail("john.doe@example");
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addEmailAvisosSobreFake()
+	{
+		repositorio = new RepositorioFakeAddEmailAvisos(true, expiredToDosAvisos, emailsAvisos);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+
+		servicio.addEmail(email);
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	// --- ------------------- -------------------------------------------------------------------
+	// --- TEST DE INTEGRACIÓN -------------------------------------------------------------------
+	// --- ------------------- -------------------------------------------------------------------
+
+	// --- Test addToDo -------------------------------------------------------------------
+
+	@Test
+	void addToDo()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.addToDo(toDo);
+
+		assertTrue(success);
+	}
+
+	@Test
+	void addToDoRepetido()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		servicio.addToDo(toDo);
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoConNombreNulo()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		toDo.setNombre(null);
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoConNombreVacio()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		toDo.setNombre(" ");
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoConDescripcionNula()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		toDo.setDescripcion(null);
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addToDoConFechaLimiteNula()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		toDo.setFechaLimite(null);
+
+		success = servicio.addToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addNotExpiredToDoAvisos()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+
+		for (IToDo expiredToDo : expiredToDosAvisos)
+			servicio.addToDo(expiredToDo);
+		for (String email : emailsAvisos)
+			servicio.addEmail(email);
+		((MailerStubLogueaLlamadas) mailer).reset();
+		servicio.addToDo(toDo);
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	@Test
+	void addExpiredToDoAvisos()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+		toDo.setFechaLimite(expiredCalendarAvisos.getTime());
+
+		for (IToDo expiredToDo : expiredToDosAvisos)
+			servicio.addToDo(expiredToDo);
+		for (String email : emailsAvisos)
+			servicio.addEmail(email);
+		((MailerStubLogueaLlamadas) mailer).reset();
+		servicio.addToDo(toDo);
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	// --- Test completarToDo -------------------------------------------------------------------
+
+	@Test
+	void completarToDoNoExistente()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.completarToDo(toDo);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void completarToDoExistente()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+		Collection<IToDo> unfinishedToDos;
+
+		servicio.addToDo(toDo);
+		success = servicio.completarToDo(toDo);
+		unfinishedToDos = servicio.getUnfinishedToDos();
+
+		assertTrue(success);
+		assertEquals(0, unfinishedToDos.size());
+	}
+
+	@Test
+	void completarToDoExistenteNoExpiradoAvisos()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+
+		for (IToDo expiredToDo : expiredToDosAvisos)
+			servicio.addToDo(expiredToDo);
+		for (String email : emailsAvisos)
+			servicio.addEmail(email);
+		servicio.addToDo(toDo);
+		((MailerStubLogueaLlamadas) mailer).reset();
+		servicio.completarToDo(toDo);
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	@Test
+	void completarToDoExistenteExpiradoAvisos()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+		toDo.setFechaLimite(expiredCalendarAvisos.getTime());
+
+		for (IToDo expiredToDo : expiredToDosAvisos)
+			servicio.addToDo(expiredToDo);
+		for (String email : emailsAvisos)
+			servicio.addEmail(email);
+		servicio.addToDo(toDo);
+		((MailerStubLogueaLlamadas) mailer).reset();
+		servicio.completarToDo(toDo);
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	// --- Test getUnfinishedToDos -------------------------------------------------------------------
+
+	@Test
+	void getUnfinishedToDos()
+	{
+		IToDo toDo2, toDo3, toDo4;
+		Collection<IToDo> unfinishedToDos;
+		toDo2 = new ToDo("Tarea test 2", "Tara para test", calendar.getTime());
+		toDo3 = new ToDo("Tarea test 3", "Tara para test", calendar.getTime());
+		toDo4 = new ToDo("Tarea test 4", "Tara para test", calendar.getTime());
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+
+		servicio.addToDo(toDo);
+		servicio.addToDo(toDo2);
+		servicio.addToDo(toDo3);
+		servicio.addToDo(toDo4);
+		unfinishedToDos = servicio.getUnfinishedToDos();
+
+		assertEquals(4,  unfinishedToDos.size());
+		assertTrue(unfinishedToDos.contains(toDo));
+		assertTrue(unfinishedToDos.contains(toDo2));
+		assertTrue(unfinishedToDos.contains(toDo3));
+		assertTrue(unfinishedToDos.contains(toDo4));
+	}
+
+	@Test
+	void getUnfinishedToDosAvisos()
+	{
+		IToDo toDo2, toDo3, toDo4;
+		toDo2 = new ToDo("Tarea test 2", "Tara para test", calendar.getTime());
+		toDo3 = new ToDo("Tarea test 3", "Tara para test", calendar.getTime());
+		toDo4 = new ToDo("Tarea test 4", "Tara para test", calendar.getTime());
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+
+		for (IToDo expiredToDo : expiredToDosAvisos)
+			servicio.addToDo(expiredToDo);
+		for (String email : emailsAvisos)
+			servicio.addEmail(email);
+		servicio.addToDo(toDo);
+		servicio.addToDo(toDo2);
+		servicio.addToDo(toDo3);
+		servicio.addToDo(toDo4);
+		((MailerStubLogueaLlamadas) mailer).reset();
+		servicio.getUnfinishedToDos();
+
+		assertEquals(3, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
+	}
+
+	// --- Test addEmail -------------------------------------------------------------------
+
+	@Test
+	void addEmail()
+	{
+		repositorio = new RepositorioFakeAddEmail(true);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.addEmail(email);
+
+		assertTrue(success);
+	}
+
+	@Test
+	void addEmailRepetido()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		servicio.addEmail(email);
+		success = servicio.addEmail(email);
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addEmailNoValido()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStub();
+		servicio = new Servicio(repositorio, mailer);
+		boolean success;
+
+		success = servicio.addEmail("john.doe@example");
+
+		assertFalse(success);
+	}
+
+	@Test
+	void addEmailAvisos()
+	{
+		IDB db = new DBStub();
+		repositorio = new Repositorio(db);
+		mailer = new MailerStubLogueaLlamadas();
+		servicio = new Servicio(repositorio, mailer);
+
+		for (IToDo expiredToDo : expiredToDosAvisos)
+			servicio.addToDo(expiredToDo);
+
+		servicio.addEmail(email);
+
+		assertEquals(1, ((MailerStubLogueaLlamadas) mailer).getNumberOfSentEmails());
 	}
 }

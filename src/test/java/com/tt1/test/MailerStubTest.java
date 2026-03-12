@@ -1,97 +1,42 @@
 package com.tt1.test;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-
-public class MailerStubTest
+class MailerStubTest
 {
+	String email;
+	String message;
+	IMailer mailer;
 
-	private MailerStub mailer;
-
-	// Captura de System.out para verificar lo que se imprime
-	private final ByteArrayOutputStream salidaCapturada = new ByteArrayOutputStream();
-	private final PrintStream salidaOriginal = System.out;
-
-	// --- Arrange -----------------------------------------------
+	// --- Arrange Before/After each test -------------------------------------------------------------------
 
 	@BeforeEach
-	public void setUp()
+	void setUp()
 	{
+		email = "john.doe@example.com";
+		message = "Hello World!";
 		mailer = new MailerStub();
-		System.setOut(new PrintStream(salidaCapturada)); // redirigir System.out
 	}
 
 	@AfterEach
-	public void tearDown()
+	void tearDown()
 	{
-		System.setOut(salidaOriginal); // restaurar System.out
-		salidaCapturada.reset();
+		email = null;
+		message = null;
 		mailer = null;
 	}
 
-	// --- Tests de retorno -----------------------------------------------
+	// --- Test sendEmail -------------------------------------------------------------------
 
 	@Test
-	public void testSendEmailDevuelveTrueAlEnviarCorrectamente()
+	void sendEmail()
 	{
-		boolean resultado = mailer.sendEmail("test@test.com", "Hola mundo");
+		boolean success = mailer.sendEmail(email, message);
 
-		assertTrue(resultado);
-	}
-
-	@Test
-	public void testSendEmailConMensajeVacioDevuelveTrue()
-	{
-		boolean resultado = mailer.sendEmail("test@test.com", "");
-
-		assertTrue(resultado);
-	}
-
-	// --- Tests de salida por consola -----------------------------------------------
-
-	@Test
-	public void testSendEmailImprimeLaDireccion()
-	{
-		mailer.sendEmail("destinatario@ejemplo.com", "Mensaje de prueba");
-		String salida = salidaCapturada.toString();
-
-		assertTrue(salida.contains("destinatario@ejemplo.com"),
-			"La salida debería contener la dirección de correo");
-	}
-
-	@Test
-	public void testSendEmailImprimeElMensaje()
-	{
-		mailer.sendEmail("destinatario@ejemplo.com", "Mensaje de prueba");
-		String salida = salidaCapturada.toString();
-
-		assertTrue(salida.contains("Mensaje de prueba"),
-			"La salida debería contener el cuerpo del mensaje");
-	}
-
-	@Test
-	public void testSendEmailImprimeAmbosDatos()
-	{
-		mailer.sendEmail("alerta@empresa.com", "Tienes tareas vencidas");
-		String salida = salidaCapturada.toString();
-
-		assertTrue(salida.contains("alerta@empresa.com"));
-		assertTrue(salida.contains("Tienes tareas vencidas"));
-	}
-
-	// --- Casos límite -----------------------------------------------
-
-	@Test
-	public void testSendEmailConMultiplesLlamadas()
-	{
-		// Verificar que múltiples envíos funcionan correctamente
-		assertTrue(mailer.sendEmail("a@a.com", "msg1"));
-		assertTrue(mailer.sendEmail("b@b.com", "msg2"));
+		assertTrue(success);
 	}
 }

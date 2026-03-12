@@ -1,146 +1,92 @@
 package com.tt1.test;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ToDoTest
+class ToDoTest
 {
-
-	private ToDo todo;
 	private Calendar calendar;
+	private IToDo toDo1;
+	private IToDo toDo2;
 
-	// --- Arrange compartido -----------------------------------------------
+	// --- Arrange Before/After each test -------------------------------------------------------------------
 
 	@BeforeEach
-	public void setUp()
+	void setUp()
 	{
-		// Se crea un Calendar reutilizable en cada test
 		calendar = Calendar.getInstance();
-		calendar.add(Calendar.DAY_OF_YEAR, 5);
-
-		// Se crea un ToDo base reutilizable en cada test
-		todo = new ToDo(
-			"Comprar leche",
-			"Ir al supermercado a comprar leche entera",
-			calendar.getTime()
-		);
+		calendar.add(Calendar.DAY_OF_MONTH, 2);
+		toDo1 = new ToDo("Tarea 1", "Tarea test", calendar.getTime());
+		toDo2 = new ToDo();
 	}
 
 	@AfterEach
-	public void tearDown()
+	void tearDown()
 	{
-		todo = null;
 		calendar = null;
+		toDo1 = null;
+		toDo2 = null;
 	}
 
-	// --- Constructor y getters -----------------------------------------------
+	// --- Test equals -------------------------------------------------------------------
 
 	@Test
-	public void testConstructorEstableceNombreCorrectamente()
+	void testEqualsMismoNombreYFechaLimite()
 	{
-		assertEquals("Comprar leche", todo.getNombre());
-	}
+		toDo2.setNombre("Tarea 1");
+		toDo2.setFechaLimite(calendar.getTime());
 
-	@Test
-	public void testConstructorEstableceDescripcionCorrectamente()
-	{
-		assertEquals("Ir al supermercado a comprar leche entera", todo.getDescripcion());
-	}
-
-	@Test
-	public void testConstructorEstableceFechaLimiteCorrectamente()
-	{
-		assertEquals(calendar.getTime(), todo.getFechaLimite());
+		assertEquals(toDo1, toDo2);
 	}
 
 	@Test
-	public void testCompletadoEsFalsePorDefecto()
+	void testEqualsMismoNombreDescripcionYFechaLimite()
 	{
-		assertFalse(todo.isCompletado());
-	}
+		toDo2.setNombre("Tarea 1");
+		toDo2.setDescripcion("Tarea test");
+		toDo2.setFechaLimite(calendar.getTime());
 
-	// --- Setters -----------------------------------------------
-
-	@Test
-	public void testSetNombreCambiaElNombre()
-	{
-		todo.setNombre("Comprar pan");
-
-		assertEquals("Comprar pan", todo.getNombre());
+		assertEquals(toDo1, toDo2);
 	}
 
 	@Test
-	public void testSetDescripcionCambiaLaDescripcion()
+	void testEqualsMismoNombreYFechaLimiteDiferenteDescripcionYEstado()
 	{
-		todo.setDescripcion("Ir a la panadería a comprar pan integral");
+		toDo2.setNombre("Tarea 1");
+		toDo2.setDescripcion("Tarea diferente");
+		toDo2.setFechaLimite(calendar.getTime());
+		toDo2.setCompletado(true);
 
-		assertEquals("Ir a la panadería a comprar pan integral", todo.getDescripcion());
+		assertEquals(toDo1, toDo2);
 	}
 
 	@Test
-	public void testSetFechaLimiteCambiaLaFecha()
+	void testEqualsMismoNombre()
 	{
-		Calendar nuevaFecha = (Calendar) calendar.clone();
-		nuevaFecha.add(Calendar.DAY_OF_YEAR, 1);
+		toDo2.setNombre("Tarea 1");
 
-		todo.setFechaLimite(nuevaFecha.getTime());
-
-		assertEquals(nuevaFecha.getTime(), todo.getFechaLimite());
+		assertNotEquals(toDo1, toDo2);
 	}
 
 	@Test
-	public void testSetCompletadoCambiaElEstado()
+	void testEqualsMismaFechaLimite()
 	{
-		todo.setCompletado(true);
+		toDo2.setFechaLimite(calendar.getTime());
 
-		assertTrue(todo.isCompletado());
+		assertNotEquals(toDo1, toDo2);
 	}
 
 	@Test
-	public void testSetCompletadoPuedeVolverAFalse()
+	void testEqualsMismNombreYDescripcion()
 	{
-		todo.setCompletado(true);
-		todo.setCompletado(false);
+		toDo2.setNombre("Tarea 1");
+		toDo2.setDescripcion("Tarea test");
 
-		assertFalse(todo.isCompletado());
-	}
-
-	// --- Casos límite -----------------------------------------------
-
-	@Test
-	public void testFechaLimitePuedeSerHoy()
-	{
-		todo.setFechaLimite(new Date());
-
-		assertEquals(new Date(), todo.getFechaLimite());
-	}
-
-	@Test
-	public void testFechaLimitePuedeSerPasada()
-	{
-		Calendar ayer = Calendar.getInstance();
-		ayer.add(Calendar.DAY_OF_YEAR, -1);
-
-		todo.setFechaLimite(ayer.getTime());
-
-		assertTrue(todo.getFechaLimite().before(new Date()));
-	}
-
-	@Test
-	public void testToDoConDescripcionVacia()
-	{
-		Calendar calendar = Calendar.getInstance();
-		calendar.add(Calendar.DAY_OF_YEAR, 5);
-
-		ToDo todoSinDesc = new ToDo("Tarea", "", calendar.getTime());
-
-		assertEquals("", todoSinDesc.getDescripcion());
+		assertNotEquals(toDo1, toDo2);
 	}
 }

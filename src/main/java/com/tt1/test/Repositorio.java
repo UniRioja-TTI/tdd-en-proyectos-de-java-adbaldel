@@ -1,74 +1,103 @@
 package com.tt1.test;
 
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
-import java.util.stream.Collectors;
 
-public class Repositorio implements IRepositorio
+/**
+ * Repositorio de gestión de tareas
+ */
+class Repositorio implements IRepositorio
 {
-	private final IDB dataBase;
+	private IDB db;
 
-	public Repositorio(IDB dataBase)
+	/**
+	 * Crea un repositorio sobre la base de datos pasada como parámetro.
+	 * La base de datos es no nula.
+	 *
+	 * @param db la base de datos sobre la que crear el repositorio.
+	 */
+	public Repositorio(IDB db)
 	{
-		this.dataBase = dataBase;
+		this.db = db;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public IToDo getToDo(IToDo todo)
+	public boolean addToDo(IToDo toDo)
 	{
-		return dataBase.getToDo(todo);
+		return db.addToDo(toDo);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public Collection<IToDo> getAllToDos()
+	public boolean completarToDo(IToDo toDo)
 	{
-		return dataBase.getAllToDos();
+		toDo.setCompletado(true);
+		return db.updateToDo(toDo);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Collection<IToDo> getUnfinishedToDos()
 	{
-		return dataBase.getAllToDos().stream()
-			.filter(t -> !t.isCompletado())
-			.collect(Collectors.toList());
+		Collection<IToDo> toDos = db.getAllToDos();
+		Collection<IToDo> unfinishedToDos = new ArrayList<>();
+
+		for (IToDo toDo : toDos)
+		{
+			if (!toDo.isCompletado())
+			{
+				unfinishedToDos.add(toDo);
+			}
+		}
+
+		return unfinishedToDos;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Collection<IToDo> getExpiredToDos()
 	{
-		Date ahora = new Date();
-		return dataBase.getAllToDos().stream()
-			.filter(t -> !t.isCompletado())
-			.filter(t -> t.getFechaLimite() != null && t.getFechaLimite().before(ahora))
-			.collect(Collectors.toList());
-	}
+		Collection<IToDo> toDos = db.getAllToDos();
+		Collection<IToDo> expiredToDos = new ArrayList<>();
+		Date now = new Date();
 
-	@Override
-	public void completarToDo(IToDo todo)
-	{
-		IToDo todoCompleto = dataBase.getToDo(todo);
-		if (todoCompleto != null)
+		for (IToDo toDo : toDos)
 		{
-			todoCompleto.setCompletado(true);
-			dataBase.updateToDo(todoCompleto);
+			if (!toDo.isCompletado() && toDo.getFechaLimite().before(now))
+			{
+				expiredToDos.add(toDo);
+			}
 		}
+
+		return expiredToDos;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void addToDo(IToDo todo)
+	public boolean addEmail(String email)
 	{
-		dataBase.insertToDo(todo);
+		return db.addEmail(email);
 	}
 
-	@Override
-	public void addEmail(String email)
-	{
-		dataBase.insertEmail(email);
-	}
-
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Collection<String> getAllEmails()
 	{
-		return dataBase.getAllEmails();
+		return db.getAllEmails();
 	}
 }

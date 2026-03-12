@@ -1,139 +1,138 @@
 package com.tt1.test;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Collection;
-import java.util.Date;
-import java.util.Scanner;
-import java.util.stream.Collectors;
 
-public class Servicio
+/**
+ * Servicio de gestión de tareas.
+ */
+public class Servicio implements IServicio
 {
-	private final IRepositorio repositorio;
-	private final IMailer mailer;
-	private static final SimpleDateFormat FORMATO_FECHA = new SimpleDateFormat("dd/MM/yyyy");
+	private IRepositorio repositorio;
+	private IMailer mailer;
 
+	/**
+	 * Crea un servicio sobre el repositorio y el mailer pasados como parámetro.
+	 * El repositorio y el mailer son no nulos.
+	 *
+	 * @param repositorio el repositorio que usa el servicio.
+	 * @param mailer el mailer que usa el servicio.
+	 */
 	public Servicio(IRepositorio repositorio, IMailer mailer)
 	{
 		this.repositorio = repositorio;
 		this.mailer = mailer;
 	}
 
-	public void addToDo()
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean addToDo(IToDo toDo)
 	{
-		Scanner scanner = new Scanner(System.in);
-		System.out.print("Nombre de la tarea: ");
-		String nombre = scanner.nextLine();
+		boolean addSuccess;
+		boolean sendWarningSuccess;
 
-		System.out.print("Descripción: ");
-		String descripcion = scanner.nextLine();
-
-		System.out.print("Fecha límite (dd/MM/yyyy): ");
-		String fechaStr = scanner.nextLine();
-
-		Date fechaLimite = null;
-		try
+		if (toDo.getNombre() != null && !toDo.getNombre().isBlank() && toDo.getDescripcion() != null
+			&& toDo.getFechaLimite() != null)
 		{
-			fechaLimite = FORMATO_FECHA.parse(fechaStr);
-		}
-		catch (ParseException e)
-		{
-			System.out.println("Formato de fecha inválido. Use dd/MM/yyyy.");
-		}
-
-		IToDo todo = new ToDo(nombre, descripcion, fechaLimite);
-		repositorio.addToDo(todo);
-
-		broadcastExpiredToDos();
-	}
-
-	public void addEmail()
-	{
-		Scanner scanner = new Scanner(System.in);
-		System.out.print("Dirección de correo electrónico: ");
-		String email = scanner.nextLine();
-
-		repositorio.addEmail(email);
-
-		broadcastExpiredToDos();
-	}
-
-	public void completarToDo()
-	{
-		Scanner scanner = new Scanner(System.in);
-		System.out.print("Nombre de la tarea a completar: ");
-		String nombre = scanner.nextLine();
-
-		IToDo dto = new ToDo(nombre, null, null);
-		repositorio.completarToDo(dto);
-
-		broadcastExpiredToDos();
-	}
-
-	public void getUnfinishedToDos()
-	{
-		Collection<IToDo> pendientes = repositorio.getUnfinishedToDos();
-
-		if (pendientes.isEmpty())
-		{
-			System.out.println("No hay tareas pendientes.");
+			addSuccess = repositorio.addToDo(toDo);
 		}
 		else
 		{
-			System.out.println("Tareas pendientes:");
-			for (IToDo todo : pendientes)
-			{
-				System.out.println("  - " + todo.getNombre()
-					+ " (límite: " + FORMATO_FECHA.format(todo.getFechaLimite()) + ")");
-			}
+			addSuccess = false;
 		}
 
-		broadcastExpiredToDos();
+		sendWarningSuccess = sendWarningEmail(repositorio.getExpiredToDos());
+
+		return addSuccess && sendWarningSuccess;
 	}
 
-	public void getExpiredToDos()
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean completarToDo(IToDo toDo)
 	{
-		Collection<IToDo> vencidas = repositorio.getExpiredToDos();
+		boolean completarSuccess;
+		boolean sendWarningSuccess;
 
-		if (vencidas.isEmpty())
+		completarSuccess = repositorio.completarToDo(toDo);
+		sendWarningSuccess = sendWarningEmail(repositorio.getExpiredToDos());
+
+		return completarSuccess && sendWarningSuccess;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Collection<IToDo> getUnfinishedToDos()
+	{
+		Collection<IToDo> toDos;
+
+		toDos = repositorio.getUnfinishedToDos();
+		sendWarningEmail(repositorio.getExpiredToDos());
+
+		return toDos;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean addEmail(String email)
+	{
+		boolean addSuccess;
+		boolean sendWarningSuccess;
+
+		if (email.matches("^[\\w\\-\\.]+@([\\w\\-]+\\.)+[\\w\\-]{2,}$"))
 		{
-			System.out.println("No hay tareas vencidas.");
+			addSuccess = repositorio.addEmail(email);
 		}
 		else
 		{
-			System.out.println("Tareas vencidas:");
-			for (IToDo todo : vencidas)
-			{
-				System.out.println("  - " + todo.getNombre()
-					+ " (límite: " + FORMATO_FECHA.format(todo.getFechaLimite()) + ")");
-			}
+			addSuccess = false;
 		}
 
-		broadcastExpiredToDos();
+		sendWarningSuccess = sendWarningEmail(repositorio.getExpiredToDos());
+
+		return addSuccess && sendWarningSuccess;
 	}
 
-	public void broadcastExpiredToDos()
+	/**
+	 * Envía un email a todos las direcciones de correo almacenadas en la base de datos informándoles de que las tareas
+	 * pasadas como parámetro están sin completar y su fecha límite ya ha pasado. Devuelve cierto si se consiguen enviar
+	 * los emails a todas las direcciones de correo, falso en caso contrario.
+	 *
+	 * @param expiredToDos la lista de tareas sin completar cuya fecha límite ya ha pasado de las que se va a informar a
+	 *                     todos los emails de la base de datos.
+	 * @return cierto si se consiguen enviar todos los emails, falso en caso contrario.
+	 */
+	private boolean sendWarningEmail(Collection<IToDo> expiredToDos)
 	{
-		Collection<IToDo> vencidas = repositorio.getExpiredToDos();
-		if (vencidas.isEmpty())
-		{
-			return;
-		}
-
 		Collection<String> emails = repositorio.getAllEmails();
-		if (emails.isEmpty())
+		String mensaje;
+		int i = 1;
+		boolean success = true;
+
+		if (!expiredToDos.isEmpty() && !emails.isEmpty())
 		{
-			return;
+			mensaje = "Los siguientes ToDos están sin completar y su fecha límite ya ha pasado:\n";
+
+			for (IToDo toDo : expiredToDos)
+			{
+				mensaje = '\t' + i + ' ' + toDo.getNombre() + " (" + toDo.getFechaLimite() + "): "
+					+ toDo.getDescripcion() + '\n';
+				i++;
+			}
+
+			for (String email : emails)
+			{
+				success = success && mailer.sendEmail(email, mensaje);
+			}
 		}
 
-		String nombresVencidas = vencidas.stream()
-			.map(IToDo::getNombre)
-			.collect(Collectors.joining(", "));
-		String mensaje = "ALERTA: Las siguientes tareas han vencido: " + nombresVencidas;
 
-		for (String email : emails)
-		{
-			mailer.sendEmail(email, mensaje);
-		}
-	}
+		return success;
+	 }
 }
